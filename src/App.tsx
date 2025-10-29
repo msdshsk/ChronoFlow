@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Calendar } from './components/Calendar';
 import { AuthButton } from './components/AuthButton';
 import AlwaysOnTopButton from './components/AlwaysOnTopButton';
+import { DigitalClock } from './components/DigitalClock';
 import './App.css';
 
 function App() {
@@ -21,9 +22,12 @@ function App() {
               <h1 className="text-2xl font-bold text-gray-900">ChronoFlow</h1>
               <span className="ml-2 text-sm text-gray-500">カレンダーアプリ</span>
             </div>
-            <div className="flex items-center gap-3">
-              <AlwaysOnTopButton />
-              <AuthButton onAuthStateChange={handleAuthStateChange} />
+            <div className="flex items-center gap-4">
+              <DigitalClock />
+              <div className="flex items-center gap-3">
+                <AlwaysOnTopButton />
+                <AuthButton onAuthStateChange={handleAuthStateChange} />
+              </div>
             </div>
           </div>
         </div>

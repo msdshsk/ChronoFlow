@@ -292,13 +292,24 @@ class GoogleCalendarService {
    */
   private convertGoogleEventToEvent(googleEvent: GoogleCalendarEvent): Event {
     // 開始時間と終了時間を取得
-    const startTime = googleEvent.start.dateTime || 
+    const startTime = googleEvent.start.dateTime ||
                      (googleEvent.start.date ? `${googleEvent.start.date}T00:00:00` : undefined);
-    const endTime = googleEvent.end.dateTime || 
-                   (googleEvent.end.date ? `${googleEvent.end.date}T23:59:59` : undefined);
-    
+
+    // 終了時間の処理
+    // Google Calendar APIでは終日イベントの end.date は実際の最終日の翌日になるため、1日引く必要がある
+    let endTime: string | undefined;
+    if (googleEvent.end.dateTime) {
+      endTime = googleEvent.end.dateTime;
+    } else if (googleEvent.end.date) {
+      // 終日イベントの場合、end.dateは翌日の日付なので1日引く
+      const endDate = new Date(googleEvent.end.date);
+      endDate.setDate(endDate.getDate() - 1);
+      const adjustedEndDate = endDate.toISOString().split('T')[0];
+      endTime = `${adjustedEndDate}T23:59:59`;
+    }
+
     // 参加者のメールアドレスを取得
-    const attendees = googleEvent.attendees?.map(attendee => 
+    const attendees = googleEvent.attendees?.map(attendee =>
       attendee.displayName || attendee.email
     ) || [];
 

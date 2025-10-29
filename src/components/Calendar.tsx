@@ -87,13 +87,15 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
     const todayString = today.toISOString().split('T')[0];
 
     // 前月の日付を追加
-    const prevMonth = new Date(currentYear, currentMonth - 1, 0);
+    const prevMonth = new Date(currentYear, currentMonth, 0);
     const daysInPrevMonth = prevMonth.getDate();
-    
+    const prevMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const prevMonthMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+
     for (let i = firstDayWeekday - 1; i >= 0; i--) {
       const date = daysInPrevMonth - i;
-      const fullDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-      
+      const fullDate = `${prevMonthYear}-${String(prevMonthMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+
       days.push({
         date,
         fullDate,
@@ -124,7 +126,19 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
       }
 
       // ユーザーイベントをチェック
-      const userDayEvents = userEvents.filter(event => event.date === fullDate);
+      const userDayEvents = userEvents.filter(event => {
+        // 開始日
+        const eventStartDate = event.date;
+
+        // 終了日を取得（endTimeがない場合は開始日と同じ）
+        let eventEndDate = eventStartDate;
+        if (event.endTime) {
+          eventEndDate = event.endTime.split('T')[0];
+        }
+
+        // fullDateがイベントの期間内にあるかチェック
+        return fullDate >= eventStartDate && fullDate <= eventEndDate;
+      });
       dayEvents.push(...userDayEvents);
 
       days.push({
