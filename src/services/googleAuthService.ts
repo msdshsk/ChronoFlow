@@ -109,13 +109,16 @@ class GoogleAuthService {
       return null;
     }
 
-    // トークンの有効期限をチェック
-    const now = Date.now();
-    if (this.authState.expiresAt && now >= this.authState.expiresAt) {
-      // トークンが期限切れの場合、リフレッシュを試行
+    // アクセストークンがないか期限切れの場合、リフレッシュを試行
+    const needsRefresh = !this.authState.accessToken ||
+      (this.authState.expiresAt != null && Date.now() >= this.authState.expiresAt);
+
+    if (needsRefresh) {
       if (this.authState.refreshToken) {
         const refreshed = await this.refreshAccessToken();
         if (!refreshed) {
+          // リフレッシュ失敗 → 再ログインが必要
+          this.logout();
           return null;
         }
       } else {
@@ -161,7 +164,8 @@ class GoogleAuthService {
       scope: GOOGLE_OAUTH_CONFIG.scope,
       response_type: GOOGLE_OAUTH_CONFIG.responseType,
       access_type: GOOGLE_OAUTH_CONFIG.accessType,
-      prompt: 'consent',
+      // 初回はconsentでリフレッシュトークンを取得、以降はselectAccountで簡易ログイン
+      prompt: this.authState.refreshToken ? 'select_account' : 'consent',
     });
 
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -283,13 +287,23 @@ class GoogleAuthService {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
         const tokens = JSON.parse(stored);
-        
-        // 有効期限をチェック
-        if (tokens.expiresAt && Date.now() < tokens.expiresAt) {
+
+        // リフレッシュトークンがあればセッションを復元
+        // （アクセストークンが期限切れでも、getValidAccessToken()でリフレッシュされる）
+        if (tokens.refreshToken) {
+          const isAccessTokenValid = tokens.expiresAt && Date.now() < tokens.expiresAt;
+          this.authState = {
+            isAuthenticated: true,
+            accessToken: isAccessTokenValid ? tokens.accessToken : null,
+            refreshToken: tokens.refreshToken,
+            expiresAt: isAccessTokenValid ? tokens.expiresAt : 0,
+          };
+        } else if (tokens.expiresAt && Date.now() < tokens.expiresAt) {
+          // リフレッシュトークンがない場合はアクセストークンの有効期限で判定
           this.authState = {
             isAuthenticated: true,
             accessToken: tokens.accessToken,
-            refreshToken: tokens.refreshToken,
+            refreshToken: null,
             expiresAt: tokens.expiresAt,
           };
         }

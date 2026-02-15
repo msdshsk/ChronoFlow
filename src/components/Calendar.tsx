@@ -84,7 +84,7 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
 
     const days: CalendarDay[] = [];
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     // 前月の日付を追加
     const prevMonth = new Date(currentYear, currentMonth, 0);
@@ -211,9 +211,11 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
 
   const getDayClassName = (day: CalendarDay, dayIndex: number) => {
     const baseClass = "min-h-24 p-2 border border-gray-200 relative";
-    const monthClass = day.isCurrentMonth ? "bg-white" : "bg-gray-50";
-    const todayClass = day.isToday ? "bg-blue-50 border-blue-300" : "";
-    
+    // isToday の場合は bg-white を適用しない（Tailwind のクラス競合を回避）
+    const bgClass = day.isToday
+      ? "bg-blue-50 border-blue-300"
+      : day.isCurrentMonth ? "bg-white" : "bg-gray-50";
+
     // 日曜日は赤、土曜日は青
     let dayColorClass = "";
     if (day.isCurrentMonth) {
@@ -228,7 +230,7 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
       dayColorClass = "text-gray-400";
     }
 
-    return `${baseClass} ${monthClass} ${todayClass} ${dayColorClass}`;
+    return `${baseClass} ${bgClass} ${dayColorClass}`;
   };
 
 
@@ -311,7 +313,13 @@ export function Calendar({ isAuthenticated }: CalendarProps) {
           {calendarDays.map((day, index) => (
             <div key={`${day.fullDate}-${index}`} className={getDayClassName(day, index)}>
               <div className="font-medium mb-1">
-                {day.date}
+                {day.isToday ? (
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold">
+                    {day.date}
+                  </span>
+                ) : (
+                  day.date
+                )}
               </div>
               
               {/* イベント表示 */}
